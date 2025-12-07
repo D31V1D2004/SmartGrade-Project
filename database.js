@@ -12,7 +12,8 @@ const db = new sqlite3.Database(dbName, (err) => {
         )`);
 
         db.run(`CREATE TABLE IF NOT EXISTS tests (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, teacher_id INTEGER, name TEXT, date TEXT
+            id INTEGER PRIMARY KEY AUTOINCREMENT, teacher_id INTEGER, name TEXT, date TEXT, is_published INTEGER DEFAULT 0, -- 0 = Draft, 1 = Public
+            FOREIGN KEY(teacher_id) REFERENCES users(id)
         )`);
 
         // UPDATE: Am adaugat coloana 'image'

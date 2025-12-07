@@ -1,14 +1,19 @@
 const API_URL = '/api';
 
+// Variabilă globală pentru a ști dacă edităm un test existent
+let currentEditingTestId = null;
+
 // --- UTILITARE & AUTH ---
 function checkUser(role) {
     const user = JSON.parse(localStorage.getItem('user'));
     if (!user || user.role !== role) window.location.href = 'index.html';
 }
+
 function logout() {
     localStorage.removeItem('user');
     window.location.href = 'index.html';
 }
+
 function toggleAuth() {
     const login = document.getElementById('loginSection');
     const signup = document.getElementById('signupSection');
@@ -18,6 +23,7 @@ function toggleAuth() {
         login.style.display = 'none'; signup.style.display = 'block';
     }
 }
+
 const toBase64 = file => new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -46,7 +52,9 @@ async function handleSignup() {
     const email = document.getElementById('newEmail').value;
     const password = document.getElementById('newPassword').value;
     const role = document.getElementById('newRole').value;
+    
     if(!name || !email || !password) return alert("Completează toate câmpurile!");
+
     try {
         const res = await fetch(`${API_URL}/signup`, {
             method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -57,10 +65,12 @@ async function handleSignup() {
     } catch (e) { alert("Eroare la înregistrare"); }
 }
 
-// ================= PROFESOR =================
+// ================= PROFESOR DASHBOARD =================
+
 async function loadTeacherDashboard() {
     checkUser('teacher');
     const user = JSON.parse(localStorage.getItem('user')); 
+
     const res = await fetch(`${API_URL}/teacher/tests/${user.id}`);
     const tests = await res.json();
     const list = document.getElementById('myTestsList');
@@ -69,15 +79,43 @@ async function loadTeacherDashboard() {
     if(tests.length === 0) list.innerHTML = '<p>Nu ai creat niciun test.</p>';
 
     tests.forEach(t => {
+        // Status Badge (Ciornă vs Publicat)
+        const statusBadge = t.is_published 
+            ? '<span style="background:#2ecc71; color:white; padding:2px 8px; border-radius:10px; font-size:10px;">PUBLICAT</span>'
+            : '<span style="background:#f1c40f; color:black; padding:2px 8px; border-radius:10px; font-size:10px;">CIORNĂ</span>';
+
+        // Buton Publicare / Ascundere logică
+        const publishBtn = t.is_published 
+            ? `<button class="btn" style="background:orange; width:auto; padding:5px; font-size:11px;" onclick="togglePublish(${t.id}, 0)">Ascunde</button>`
+            : `<button class="btn" style="background:#2ecc71; width:auto; padding:5px; font-size:11px;" onclick="togglePublish(${t.id}, 1)">Publică</button>`;
+
         list.innerHTML += `
-            <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
-                <b>${t.name}</b>
-                <button class="btn" style="width:auto; padding:5px 15px; margin:0;" 
-                onclick="viewTestResults(${t.id}, '${t.name}')">Rezultate</button>
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <b>${t.name}</b> ${statusBadge}<br>
+                        <small style="color:grey">${t.date}</small>
+                    </div>
+                    <div style="display:flex; gap:5px;">
+                        ${publishBtn}
+                        <button class="btn" style="background:#3498db; width:auto; padding:5px; font-size:11px;" onclick="editTest(${t.id}, '${t.name}')">Editează</button>
+                        <button class="btn" style="background:#9b59b6; width:auto; padding:5px; font-size:11px;" onclick="viewTestResults(${t.id}, '${t.name}')">Note</button>
+                    </div>
+                </div>
             </div>`;
     });
 }
 
+// Publicare rapidă (Toggle)
+async function togglePublish(testId, status) {
+    await fetch(`${API_URL}/toggle-publish`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ testId, status })
+    });
+    loadTeacherDashboard(); // Refresh la listă
+}
+
+// Vizualizare Rezultate
 async function viewTestResults(testId, testName) {
     document.getElementById('mainDashboard').style.display = 'none';
     document.getElementById('resultsSection').style.display = 'block';
@@ -107,10 +145,178 @@ async function viewTestResults(testId, testName) {
     });
 }
 
-// ================= REVIEW COMUN (TEACHER & STUDENT) =================
-// Aceasta functie afiseaza testul colorat + PUNCTAJUL PE INTREBARE
+// ================= TEST BUILDER (Create & Edit) =================
+
+let questionCount = 0;
+
+// Resetare formular pentru CREARE
+function showCreateSection() {
+    currentEditingTestId = null; 
+    document.getElementById('mainDashboard').style.display = 'none';
+    document.getElementById('testBuilder').style.display = 'block';
+    
+    const pageTitle = document.getElementById('pageTitle');
+    if(pageTitle) pageTitle.innerText = "Creează Test Nou";
+    
+    document.getElementById('testTitle').value = '';
+    document.getElementById('questionsContainer').innerHTML = '';
+    questionCount = 0;
+    addQuestionUI(); // O întrebare goală la început
+}
+
+// Încărcare formular pentru EDITARE
+async function editTest(testId, testName) {
+    currentEditingTestId = testId;
+    document.getElementById('mainDashboard').style.display = 'none';
+    document.getElementById('testBuilder').style.display = 'block';
+    document.getElementById('testTitle').value = testName;
+    
+    const pageTitle = document.getElementById('pageTitle');
+    if(pageTitle) pageTitle.innerText = "Editare: " + testName;
+
+    const container = document.getElementById('questionsContainer');
+    container.innerHTML = '<p>Se încarcă testul...</p>';
+
+    const res = await fetch(`${API_URL}/test-details/${testId}`);
+    const questions = await res.json();
+    container.innerHTML = '';
+    questionCount = 0;
+
+    questions.forEach(q => {
+        addQuestionFromData(q);
+    });
+}
+
+// --- UI HELPERS PENTRU ÎNTREBĂRI ---
+
+// Adaugă întrebare goală (Userul apasă butonul)
+function addQuestionUI() {
+    questionCount++;
+    const container = document.getElementById('questionsContainer');
+    const div = createQuestionElement(questionCount, '', null);
+    container.appendChild(div);
+    // Adăugăm 2 variante default
+    addOptionToQuestion(questionCount);
+    addOptionToQuestion(questionCount);
+}
+
+// Adaugă întrebare populată cu date (La editare)
+function addQuestionFromData(qData) {
+    questionCount++;
+    const container = document.getElementById('questionsContainer');
+    const div = createQuestionElement(questionCount, qData.text, qData.image); 
+    container.appendChild(div);
+
+    qData.options.forEach(opt => {
+        addOptionToQuestion(questionCount, opt.text, opt.is_correct);
+    });
+}
+
+function createQuestionElement(id, text, imageBase64) {
+    const div = document.createElement('div');
+    div.className = 'card question-card';
+    div.id = `q-card-${id}`;
+    div.style.background = '#f9f9f9';
+    
+    // Dacă avem imagine veche la editare
+    let imgPreview = '';
+    if(imageBase64) {
+        imgPreview = `<img src="${imageBase64}" class="old-image-preview" style="max-height:100px; display:block; margin-bottom:5px;">
+                      <input type="hidden" class="old-image-data" value="${imageBase64}">`;
+    }
+
+    div.innerHTML = `
+        <div style="display:flex; justify-content:space-between;">
+            <h4>Întrebarea</h4>
+            <button onclick="this.parentElement.parentElement.remove()" style="background:red; color:white; border:none; border-radius:5px; cursor:pointer;">X</button>
+        </div>
+        ${imgPreview}
+        <input type="file" class="q-image" accept="image/*" style="margin-bottom:10px;">
+        <input type="text" class="q-text" value="${text}" placeholder="Textul Întrebării">
+        <p style="font-size:12px; color:grey; margin-top:10px;">Variante:</p>
+        <div class="options-container" id="opts-container-${id}"></div>
+        <button class="btn" style="background:#e0e0e0; color:#333; margin-top:10px; font-size:14px;" onclick="addOptionToQuestion(${id})">+ Variantă</button>
+    `;
+    return div;
+}
+
+function addOptionToQuestion(qId, text = '', isCorrect = false) {
+    const optsContainer = document.getElementById(`opts-container-${qId}`);
+    const div = document.createElement('div');
+    div.className = 'option-row';
+    div.style.display = 'flex'; div.style.alignItems = 'center'; div.style.gap = '10px'; div.style.marginBottom = '5px';
+    div.innerHTML = `
+        <input type="checkbox" class="correct-cb" ${isCorrect ? 'checked' : ''} style="width:20px; height:20px; margin:0;">
+        <input type="text" class="opt-text" value="${text}" placeholder="Scrie varianta..." style="margin:0; flex:1;">
+        <button onclick="this.parentElement.remove()" style="background:none; border:none; color:red; font-weight:bold; cursor:pointer;"><i class="fas fa-times"></i></button>
+    `;
+    optsContainer.appendChild(div);
+}
+
+// SALVARE FINALA (Acceptă isPublished true/false)
+async function saveFullTest(isPublished) {
+    const user = JSON.parse(localStorage.getItem('user'));
+    const titleInput = document.getElementById('testTitle');
+    
+    if (!titleInput.value) return alert("Dă un titlu testului!");
+    
+    const qCards = document.querySelectorAll('.question-card');
+    const questionsData = [];
+
+    for (const card of qCards) {
+        const qText = card.querySelector('.q-text').value;
+        const fileInput = card.querySelector('.q-image');
+        const oldImageInput = card.querySelector('.old-image-data');
+        let imageBase64 = null;
+        
+        // Logica Imagini: Dacă urcă una nouă o ia pe aia, altfel păstrează cea veche
+        if (fileInput.files.length > 0) {
+            imageBase64 = await toBase64(fileInput.files[0]);
+        } else if (oldImageInput) {
+            imageBase64 = oldImageInput.value;
+        }
+
+        const options = [];
+        card.querySelectorAll('.option-row').forEach(row => {
+            const textVal = row.querySelector('.opt-text').value;
+            const isChecked = row.querySelector('.correct-cb').checked;
+            if (textVal.trim() !== "") options.push({ text: textVal, isCorrect: isChecked });
+        });
+
+        if (qText && options.length >= 2) {
+            questionsData.push({ text: qText, image: imageBase64, options });
+        }
+    }
+
+    if(questionsData.length === 0) return alert("Adaugă întrebări valide (minim text + 2 variante)!");
+
+    // Determinam ruta (Create sau Update)
+    let url = currentEditingTestId ? `${API_URL}/update-test` : `${API_URL}/create-test`;
+    
+    const body = {
+        testId: currentEditingTestId, // Necesar doar la update
+        name: titleInput.value, 
+        date: new Date().toISOString().slice(0,10), 
+        questions: questionsData, 
+        teacherId: user.id,
+        isPublished: isPublished
+    };
+
+    const res = await fetch(url, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body)
+    });
+    
+    if(res.ok) { 
+        alert(isPublished ? "Test Publicat!" : "Test Salvat ca Ciornă!"); 
+        window.location.reload(); 
+    } else alert("Eroare server");
+}
+
+// ================= REVIEW (Comun Student & Profesor) =================
+
 async function loadReview(testId, studentId, studentName) {
-    // Ascundem dashboard-urile (fie teacher, fie student)
+    // Ascundem ecranele principale
     if(document.getElementById('resultsSection')) document.getElementById('resultsSection').style.display = 'none';
     if(document.getElementById('dashboardView')) document.getElementById('dashboardView').style.display = 'none';
     
@@ -121,7 +327,6 @@ async function loadReview(testId, studentId, studentName) {
     container.innerHTML = '<p>Se încarcă lucrarea...</p>';
 
     try {
-        // Apelam ruta noua (fara /teacher in path)
         const res = await fetch(`${API_URL}/review/${testId}/${studentId}`);
         const questions = await res.json();
 
@@ -153,7 +358,7 @@ async function loadReview(testId, studentId, studentName) {
                 optionsHTML += `<div style="${style}">${icon} ${opt.text}</div>`;
             });
 
-            // Afisam SCORUL in dreapta sus
+            // Punctajul per întrebare
             const scoreBadge = `<span style="float:right; background:#6c5ce7; color:white; padding:5px 10px; border-radius:15px; font-size:0.9rem;">
                 ${q.score} / 1p
             </span>`;
@@ -174,8 +379,6 @@ async function loadReview(testId, studentId, studentName) {
 
 function closeReview() {
     document.getElementById('reviewModal').style.display = 'none';
-    
-    // Verificam cine a deschis modalul (Prof sau Student)
     const user = JSON.parse(localStorage.getItem('user'));
     if (user.role === 'teacher') {
         document.getElementById('resultsSection').style.display = 'block';
@@ -184,85 +387,8 @@ function closeReview() {
     }
 }
 
-// ================= TEST BUILDER (PROFESOR) =================
-let questionCount = 0;
-function showCreateSection() {
-    document.getElementById('mainDashboard').style.display = 'none';
-    document.getElementById('testBuilder').style.display = 'block';
-}
-
-function addQuestionUI() {
-    questionCount++;
-    const container = document.getElementById('questionsContainer');
-    const div = document.createElement('div');
-    div.className = 'card question-card';
-    div.id = `q-card-${questionCount}`;
-    div.style.background = '#f9f9f9';
-    
-    div.innerHTML = `
-        <div style="display:flex; justify-content:space-between;">
-            <h4>Întrebarea ${questionCount}</h4>
-            <button onclick="this.parentElement.parentElement.remove()" style="background:red; color:white; border:none; border-radius:5px; cursor:pointer;">X</button>
-        </div>
-        <input type="file" class="q-image" accept="image/*" style="margin-bottom:10px;">
-        <input type="text" class="q-text" placeholder="Textul Întrebării">
-        <p style="font-size:12px; color:grey; margin-top:10px;">Variante de răspuns (bifează ce e corect):</p>
-        <div class="options-container" id="opts-container-${questionCount}"></div>
-        <button class="btn" style="background: #e0e0e0; color: #333; margin-top:10px; font-size:14px;" onclick="addOptionToQuestion(${questionCount})">
-            <i class="fas fa-plus"></i> Adaugă Variantă
-        </button>
-    `;
-    container.appendChild(div);
-    addOptionToQuestion(questionCount); addOptionToQuestion(questionCount);
-}
-
-function addOptionToQuestion(qId) {
-    const optsContainer = document.getElementById(`opts-container-${qId}`);
-    const div = document.createElement('div');
-    div.className = 'option-row';
-    div.style.display = 'flex'; div.style.alignItems = 'center'; div.style.gap = '10px'; div.style.marginBottom = '5px';
-    div.innerHTML = `
-        <input type="checkbox" class="correct-cb" style="width:20px; height:20px; margin:0;">
-        <input type="text" class="opt-text" placeholder="Scrie varianta..." style="margin:0; flex:1;">
-        <button onclick="this.parentElement.remove()" style="background:none; border:none; color:red; font-weight:bold; cursor:pointer;"><i class="fas fa-times"></i></button>
-    `;
-    optsContainer.appendChild(div);
-}
-
-async function saveFullTest() {
-    const user = JSON.parse(localStorage.getItem('user'));
-    const titleInput = document.getElementById('testTitle');
-    if (!titleInput.value) return alert("Dă un titlu testului!");
-    
-    const qCards = document.querySelectorAll('.question-card');
-    const questionsData = [];
-
-    for (const card of qCards) {
-        const qText = card.querySelector('.q-text').value;
-        const fileInput = card.querySelector('.q-image');
-        let imageBase64 = null;
-        if (fileInput.files.length > 0) imageBase64 = await toBase64(fileInput.files[0]);
-
-        const options = [];
-        card.querySelectorAll('.option-row').forEach(row => {
-            const textVal = row.querySelector('.opt-text').value;
-            const isChecked = row.querySelector('.correct-cb').checked;
-            if (textVal.trim() !== "") options.push({ text: textVal, isCorrect: isChecked });
-        });
-
-        if (qText && options.length >= 2) questionsData.push({ text: qText, image: imageBase64, options });
-    }
-
-    if(questionsData.length === 0) return alert("Adaugă întrebări valide!");
-
-    const res = await fetch(`${API_URL}/create-full-test`, {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ name: titleInput.value, date: new Date().toISOString().slice(0,10), questions: questionsData, teacherId: user.id })
-    });
-    if(res.ok) { alert("Test Publicat!"); window.location.reload(); } else alert("Eroare server");
-}
-
 // ================= STUDENT =================
+
 async function loadStudentData() {
     checkUser('student');
     const user = JSON.parse(localStorage.getItem('user'));
@@ -284,35 +410,21 @@ async function loadStudentData() {
             </div>`;
     });
     
-    // LISTA NOTE + BUTON VEZI LUCRARE
-    // public/script.js - În interiorul funcției loadStudentData, la final
-
-    // ... (codul anterior pentru availableTestsList) ...
-    
-    // LISTA NOTE + BUTON VEZI LUCRARE
+    // Lista Note + Review
     const resG = await fetch(`${API_URL}/grades/${user.id}`);
     const grades = await resG.json();
     const gList = document.getElementById('gradesList');
     if(gList) {
         gList.innerHTML = '';
-        if (grades.length === 0) {
-            gList.innerHTML = '<p style="color:gray">Nu ai completat niciun test încă.</p>';
-        }
-
+        if (grades.length === 0) gList.innerHTML = '<p style="color:gray">Nu ai completat niciun test încă.</p>';
+        
         grades.forEach(g => {
-            // MODIFICAT: Am adăugat linia cu numele profesorului
             gList.innerHTML += `
             <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
                 <div>
-                    <span style="font-weight:bold; font-size:1.1rem;">${g.test_name}</span>
-                    <br>
-                    <small style="color:gray;">
-                        <i class="fas fa-chalkboard-teacher"></i> Prof. ${g.teacher_name}
-                    </small>
-                    <br>
-                    <span style="color:${g.score >= 5 ? 'green' : 'red'}; font-weight:bold;">
-                        Nota: ${g.score}
-                    </span>
+                    <span style="font-weight:bold; font-size:1.1rem;">${g.test_name}</span><br>
+                    <small style="color:gray;"><i class="fas fa-chalkboard-teacher"></i> Prof. ${g.teacher_name}</small><br>
+                    <span style="color:${g.score >= 5 ? 'green' : 'red'}; font-weight:bold;">Nota: ${g.score}</span>
                 </div>
                 <button class="btn" style="width:auto; padding:5px 15px; font-size:12px; background:#6c5ce7;" 
                     onclick="loadReview(${g.test_id}, ${user.id}, '${user.name}')">
@@ -324,6 +436,7 @@ async function loadStudentData() {
 }
 
 let currentTestId = null;
+
 async function startQuiz(testId, testName) {
     currentTestId = testId;
     document.getElementById('dashboardView').style.display = 'none';
@@ -360,6 +473,7 @@ async function submitQuiz() {
         if(!answersMap[qId]) answersMap[qId] = [];
         answersMap[qId].push(inp.value);
     });
+
     const answers = Object.keys(answersMap).map(qId => ({ question_id: qId, selected_options: answersMap[qId] }));
 
     const res = await fetch(`${API_URL}/submit-quiz`, {

@@ -52,12 +52,20 @@
                 <i class="fas fa-plus-circle"></i> Adaugă Întrebare
             </button>
             
-            <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
-                <button class="btn" onclick="saveFullTest()">PUBLICA TESTUL</button>
-                <button class="btn" style="background: #e74c3c; margin-top:10px;" onclick="window.location.reload()">Anulează</button>
+            <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px; display:flex; gap:10px;">
+                <button class="btn" style="background: #f1c40f; color:black;" onclick="saveFullTest(false)">
+                    <i class="fas fa-save"></i> Salvează Ciornă
+                </button>
+    
+                <button class="btn" style="background: #2ecc71;" onclick="saveFullTest(true)">
+                    <i class="fas fa-paper-plane"></i> Publică
+                </button>
+
+                <button class="btn" style="background: #e74c3c;" onclick="window.location.reload()">
+                     Anulează
+                </button>
             </div>
         </div>
-
     </div>
 
     <nav class="navbar">
