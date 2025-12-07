@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profesor - SmartGrade</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body onload="loadTeacherDashboard()">
+    <div class="header" style="padding: 20px;">
+        <h2>Panou Profesor</h2>
+    </div>
+
+    <div class="container" style="margin-top: -30px; padding-bottom: 80px;">
+        
+        <div id="mainDashboard">
+            <button class="btn" onclick="showCreateSection()">
+                <i class="fas fa-plus"></i> Creează Test Nou
+            </button>
+            <h3 style="margin-top:20px;">Testele Mele</h3>
+            <div id="myTestsList">
+                <p>Se încarcă...</p>
+            </div>
+        </div>
+
+        <div id="resultsSection" style="display: none;">
+            <button class="btn" style="background: grey; width:auto; margin-bottom:15px;" onclick="window.location.reload()">
+                <i class="fas fa-arrow-left"></i> Înapoi
+            </button>
+            <h3 id="resultsTitle">Rezultate</h3>
+            <div id="studentsResultsList"></div>
+        </div>
+
+        <div id="reviewModal" style="display: none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <button class="btn" style="width:auto; background:grey; margin:0;" onclick="closeReview()">
+                    <i class="fas fa-arrow-left"></i> Înapoi
+                </button>
+            </div>
+            <h3 id="reviewStudentName" style="margin-bottom:15px;">Nume Elev</h3>
+            <div id="reviewContainer">
+                </div>
+        </div>
+
+        <div id="testBuilder" class="card" style="display: none;">
+            <h3>Configurare Test</h3>
+            <input type="text" id="testTitle" placeholder="Titlu Test (ex: Examen Web)">
+            <div id="questionsContainer"></div>
+            
+            <button class="btn" style="background: var(--secondary);" onclick="addQuestionUI()">
+                <i class="fas fa-plus-circle"></i> Adaugă Întrebare
+            </button>
+            
+            <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
+                <button class="btn" onclick="saveFullTest()">PUBLICA TESTUL</button>
+                <button class="btn" style="background: #e74c3c; margin-top:10px;" onclick="window.location.reload()">Anulează</button>
+            </div>
+        </div>
+
+    </div>
+
+    <nav class="navbar">
+        <a href="#" onclick="window.location.reload()" class="nav-item active"><i class="fas fa-chalkboard-teacher"></i><br>Panou</a>
+        <a href="#" onclick="logout()" class="nav-item"><i class="fas fa-sign-out-alt"></i><br>Ieșire</a>
+    </nav>
+    <script src="script.js"></script>
+</body>
+</html>
