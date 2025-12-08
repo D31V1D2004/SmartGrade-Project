@@ -32,21 +32,27 @@ SmartGrade este o aplicație web modernă, optimizată pentru dispozitive mobile
 ## 5. Arhitectura Aplicației
 [Browser Client] <---> [API REST (JSON)] <---> [Server Node.js] <---> [SQLite DB]
 
+```mermaid
 graph TD
     subgraph Client [Frontend - Browser]
         A[HTML/CSS] -->|Interacțiune Utilizator| B[JavaScript (script.js)]
     end
+
     subgraph Server [Backend - Node.js]
         B -- HTTP Fetch (JSON) --> C[Express Server (server.js)]
         C -- Răspuns JSON --> B
     end
+
     subgraph Database [Stocare Date]
         C -- SQL Queries --> D[(SQLite: smartgrade.db)]
         D -- Rezultate (Rows) --> C
     end
+
     classDef client fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
     classDef server fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
     classDef db fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
+
     class A,B client;
     class C server;
     class D db;
+```
