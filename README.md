@@ -30,7 +30,6 @@ SmartGrade este o aplicație web modernă, optimizată pentru dispozitive mobile
 * Istoric note și vizualizare detaliată a propriei lucrări (feedback vizual).
 
 ## 5. Arhitectura Aplicației
-[Browser Client] <---> [API REST (JSON)] <---> [Server Node.js] <---> [SQLite DB]
 
 ```mermaid
 graph TD
