@@ -35,17 +35,17 @@ SmartGrade este o aplicație web modernă, optimizată pentru dispozitive mobile
 ```mermaid
 graph TD
     subgraph Client [Frontend - Browser]
-        A[HTML/CSS] -->|Interacțiune Utilizator| B[JavaScript (script.js)]
+        A[HTML/CSS] -->|Interacțiune Utilizator| B[JavaScript]
     end
 
     subgraph Server [Backend - Node.js]
-        B -- HTTP Fetch (JSON) --> C[Express Server (server.js)]
+        B -- HTTP Fetch JSON --> C[Express Server]
         C -- Răspuns JSON --> B
     end
 
     subgraph Database [Stocare Date]
-        C -- SQL Queries --> D[(SQLite: smartgrade.db)]
-        D -- Rezultate (Rows) --> C
+        C -- SQL Queries --> D[(SQLite DB)]
+        D -- Rezultate Rows --> C
     end
 
     classDef client fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
