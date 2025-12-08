@@ -1,19 +1,25 @@
 const API_URL = '/api';
 
-// Variabilă globală pentru a ști dacă edităm un test existent
+// Variabila globala pentru a sti daca editam un test existent
+// Daca e null = Creare Test Nou. Daca are ID = Editare Test Existent.
 let currentEditingTestId = null;
 
-// --- UTILITARE & AUTH ---
+// ================= 1. UTILITARE & AUTENTIFICARE =================
+
+// Verifica daca utilizatorul este logat si are rolul corect (student/teacher)
+// Se apeleaza la incarcarea paginii.
 function checkUser(role) {
     const user = JSON.parse(localStorage.getItem('user'));
     if (!user || user.role !== role) window.location.href = 'index.html';
 }
 
+// Sterge userul din memoria browserului si redirectioneaza la Login
 function logout() {
     localStorage.removeItem('user');
     window.location.href = 'index.html';
 }
 
+// Comuta intre formularul de Login si cel de Sign Up
 function toggleAuth() {
     const login = document.getElementById('loginSection');
     const signup = document.getElementById('signupSection');
@@ -24,6 +30,8 @@ function toggleAuth() {
     }
 }
 
+// Functie care transforma o imagine (Fisier) intr-un text lung (Base64)
+// Asta ne ajuta sa salvam poza direct in baza de date SQLite
 const toBase64 = file => new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -31,6 +39,7 @@ const toBase64 = file => new Promise((resolve, reject) => {
     reader.onerror = error => reject(error);
 });
 
+// Functia de Login - Trimite email si parola la server
 async function handleLogin() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
@@ -41,19 +50,21 @@ async function handleLogin() {
         });
         const data = await res.json();
         if(data.success) {
+            // Salvam userul local si intram in dashboard
             localStorage.setItem('user', JSON.stringify(data.user));
             window.location.href = data.user.role === 'teacher' ? 'teacher.html' : 'student.html';
         } else alert(data.message);
     } catch (e) { alert("Eroare conexiune"); }
 }
 
+// Functia de Inregistrare - Creeaza cont nou
 async function handleSignup() {
     const name = document.getElementById('newName').value;
     const email = document.getElementById('newEmail').value;
     const password = document.getElementById('newPassword').value;
     const role = document.getElementById('newRole').value;
     
-    if(!name || !email || !password) return alert("Completează toate câmpurile!");
+    if(!name || !email || !password) return alert("Completeaza toate campurile!");
 
     try {
         const res = await fetch(`${API_URL}/signup`, {
@@ -62,15 +73,17 @@ async function handleSignup() {
         });
         const data = await res.json();
         if(data.success) { alert("Cont creat!"); toggleAuth(); } else alert(data.message);
-    } catch (e) { alert("Eroare la înregistrare"); }
+    } catch (e) { alert("Eroare la inregistrare"); }
 }
 
-// ================= PROFESOR DASHBOARD =================
+// ================= 2. MODUL PROFESOR (DASHBOARD) =================
 
+// Incarca lista de teste create de profesorul curent
 async function loadTeacherDashboard() {
     checkUser('teacher');
     const user = JSON.parse(localStorage.getItem('user')); 
 
+    // Cerem de la server doar testele acestui profesor (dupa ID)
     const res = await fetch(`${API_URL}/teacher/tests/${user.id}`);
     const tests = await res.json();
     const list = document.getElementById('myTestsList');
@@ -79,15 +92,15 @@ async function loadTeacherDashboard() {
     if(tests.length === 0) list.innerHTML = '<p>Nu ai creat niciun test.</p>';
 
     tests.forEach(t => {
-        // Status Badge (Ciornă vs Publicat)
+        // Afisare Status: Ciorna (Galben) sau Publicat (Verde)
         const statusBadge = t.is_published 
             ? '<span style="background:#2ecc71; color:white; padding:2px 8px; border-radius:10px; font-size:10px;">PUBLICAT</span>'
-            : '<span style="background:#f1c40f; color:black; padding:2px 8px; border-radius:10px; font-size:10px;">CIORNĂ</span>';
+            : '<span style="background:#f1c40f; color:black; padding:2px 8px; border-radius:10px; font-size:10px;">CIORNA</span>';
 
-        // Buton Publicare / Ascundere logică
+        // Butonul se schimba din "Publica" in "Ascunde" in functie de stare
         const publishBtn = t.is_published 
             ? `<button class="btn" style="background:orange; width:auto; padding:5px; font-size:11px;" onclick="togglePublish(${t.id}, 0)">Ascunde</button>`
-            : `<button class="btn" style="background:#2ecc71; width:auto; padding:5px; font-size:11px;" onclick="togglePublish(${t.id}, 1)">Publică</button>`;
+            : `<button class="btn" style="background:#2ecc71; width:auto; padding:5px; font-size:11px;" onclick="togglePublish(${t.id}, 1)">Publica</button>`;
 
         list.innerHTML += `
             <div class="card">
@@ -98,7 +111,7 @@ async function loadTeacherDashboard() {
                     </div>
                     <div style="display:flex; gap:5px;">
                         ${publishBtn}
-                        <button class="btn" style="background:#3498db; width:auto; padding:5px; font-size:11px;" onclick="editTest(${t.id}, '${t.name}')">Editează</button>
+                        <button class="btn" style="background:#3498db; width:auto; padding:5px; font-size:11px;" onclick="editTest(${t.id}, '${t.name}')">Editeaza</button>
                         <button class="btn" style="background:#9b59b6; width:auto; padding:5px; font-size:11px;" onclick="viewTestResults(${t.id}, '${t.name}')">Note</button>
                     </div>
                 </div>
@@ -106,16 +119,16 @@ async function loadTeacherDashboard() {
     });
 }
 
-// Publicare rapidă (Toggle)
+// Schimba rapid starea testului (Draft <-> Public)
 async function togglePublish(testId, status) {
     await fetch(`${API_URL}/toggle-publish`, {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ testId, status })
     });
-    loadTeacherDashboard(); // Refresh la listă
+    loadTeacherDashboard(); // Reincarcam lista
 }
 
-// Vizualizare Rezultate
+// Afiseaza lista studentilor care au dat un anumit test
 async function viewTestResults(testId, testName) {
     document.getElementById('mainDashboard').style.display = 'none';
     document.getElementById('resultsSection').style.display = 'block';
@@ -145,62 +158,60 @@ async function viewTestResults(testId, testName) {
     });
 }
 
-// ================= TEST BUILDER (Create & Edit) =================
+// ================= 3. TEST BUILDER (CREARE SI EDITARE) =================
 
-let questionCount = 0;
+let questionCount = 0; // Contor pentru ID-uri unice in DOM
 
-// Resetare formular pentru CREARE
+// Reseteaza formularul pentru a crea un test nou
 function showCreateSection() {
-    currentEditingTestId = null; 
+    currentEditingTestId = null; // Null inseamna ca nu editam, ci cream
     document.getElementById('mainDashboard').style.display = 'none';
     document.getElementById('testBuilder').style.display = 'block';
     
-    const pageTitle = document.getElementById('pageTitle');
-    if(pageTitle) pageTitle.innerText = "Creează Test Nou";
-    
+    document.getElementById('pageTitle').innerText = "Creeaza Test Nou";
     document.getElementById('testTitle').value = '';
     document.getElementById('questionsContainer').innerHTML = '';
     questionCount = 0;
-    addQuestionUI(); // O întrebare goală la început
+    addQuestionUI(); // Adaugam prima intrebare goala
 }
 
-// Încărcare formular pentru EDITARE
+// Incarca datele unui test existent pentru Editare
 async function editTest(testId, testName) {
-    currentEditingTestId = testId;
+    currentEditingTestId = testId; // Setam ID-ul testului pe care il editam
     document.getElementById('mainDashboard').style.display = 'none';
     document.getElementById('testBuilder').style.display = 'block';
     document.getElementById('testTitle').value = testName;
-    
-    const pageTitle = document.getElementById('pageTitle');
-    if(pageTitle) pageTitle.innerText = "Editare: " + testName;
+    document.getElementById('pageTitle').innerText = "Editare: " + testName;
 
     const container = document.getElementById('questionsContainer');
-    container.innerHTML = '<p>Se încarcă testul...</p>';
+    container.innerHTML = '<p>Se incarca testul...</p>';
 
+    // Luam toate detaliile (intrebari, poze, variante) de la server
     const res = await fetch(`${API_URL}/test-details/${testId}`);
     const questions = await res.json();
     container.innerHTML = '';
     questionCount = 0;
 
+    // Reconstruim interfata cu datele primite
     questions.forEach(q => {
         addQuestionFromData(q);
     });
 }
 
-// --- UI HELPERS PENTRU ÎNTREBĂRI ---
+// --- FUNCTII AJUTATOARE PENTRU INTERFATA INTREBARI ---
 
-// Adaugă întrebare goală (Userul apasă butonul)
+// Adauga o intrebare goala in pagina (cand apesi "+ Intrebare")
 function addQuestionUI() {
     questionCount++;
     const container = document.getElementById('questionsContainer');
     const div = createQuestionElement(questionCount, '', null);
     container.appendChild(div);
-    // Adăugăm 2 variante default
+    // Adaugam 2 variante goale implicit
     addOptionToQuestion(questionCount);
     addOptionToQuestion(questionCount);
 }
 
-// Adaugă întrebare populată cu date (La editare)
+// Adauga o intrebare deja completata (folosit la Editare)
 function addQuestionFromData(qData) {
     questionCount++;
     const container = document.getElementById('questionsContainer');
@@ -212,13 +223,14 @@ function addQuestionFromData(qData) {
     });
 }
 
+// Creeaza HTML-ul pentru cardul unei intrebari (Titlu, Upload Poza, Input Text)
 function createQuestionElement(id, text, imageBase64) {
     const div = document.createElement('div');
     div.className = 'card question-card';
     div.id = `q-card-${id}`;
     div.style.background = '#f9f9f9';
     
-    // Dacă avem imagine veche la editare
+    // Daca exista o imagine salvata, o afisam ca preview
     let imgPreview = '';
     if(imageBase64) {
         imgPreview = `<img src="${imageBase64}" class="old-image-preview" style="max-height:100px; display:block; margin-bottom:5px;">
@@ -227,19 +239,20 @@ function createQuestionElement(id, text, imageBase64) {
 
     div.innerHTML = `
         <div style="display:flex; justify-content:space-between;">
-            <h4>Întrebarea</h4>
+            <h4>Intrebarea</h4>
             <button onclick="this.parentElement.parentElement.remove()" style="background:red; color:white; border:none; border-radius:5px; cursor:pointer;">X</button>
         </div>
         ${imgPreview}
         <input type="file" class="q-image" accept="image/*" style="margin-bottom:10px;">
-        <input type="text" class="q-text" value="${text}" placeholder="Textul Întrebării">
+        <input type="text" class="q-text" value="${text}" placeholder="Textul Intrebarii">
         <p style="font-size:12px; color:grey; margin-top:10px;">Variante:</p>
         <div class="options-container" id="opts-container-${id}"></div>
-        <button class="btn" style="background:#e0e0e0; color:#333; margin-top:10px; font-size:14px;" onclick="addOptionToQuestion(${id})">+ Variantă</button>
+        <button class="btn" style="background:#e0e0e0; color:#333; margin-top:10px; font-size:14px;" onclick="addOptionToQuestion(${id})">+ Varianta</button>
     `;
     return div;
 }
 
+// Adauga un rand nou pentru varianta de raspuns (Checkbox + Text + Sterge)
 function addOptionToQuestion(qId, text = '', isCorrect = false) {
     const optsContainer = document.getElementById(`opts-container-${qId}`);
     const div = document.createElement('div');
@@ -253,13 +266,14 @@ function addOptionToQuestion(qId, text = '', isCorrect = false) {
     optsContainer.appendChild(div);
 }
 
-// SALVARE FINALA (Acceptă isPublished true/false)
+// Functia Principala de Salvare (Gestioneaza atat Crearea cat si Actualizarea)
 async function saveFullTest(isPublished) {
     const user = JSON.parse(localStorage.getItem('user'));
     const titleInput = document.getElementById('testTitle');
     
-    if (!titleInput.value) return alert("Dă un titlu testului!");
+    if (!titleInput.value) return alert("Da un titlu testului!");
     
+    // Colectam datele din interfata
     const qCards = document.querySelectorAll('.question-card');
     const questionsData = [];
 
@@ -269,7 +283,7 @@ async function saveFullTest(isPublished) {
         const oldImageInput = card.querySelector('.old-image-data');
         let imageBase64 = null;
         
-        // Logica Imagini: Dacă urcă una nouă o ia pe aia, altfel păstrează cea veche
+        // Daca utilizatorul a pus o poza noua, o folosim pe aia. Daca nu, pastram pe cea veche.
         if (fileInput.files.length > 0) {
             imageBase64 = await toBase64(fileInput.files[0]);
         } else if (oldImageInput) {
@@ -283,14 +297,15 @@ async function saveFullTest(isPublished) {
             if (textVal.trim() !== "") options.push({ text: textVal, isCorrect: isChecked });
         });
 
+        // Validare: Intrebarea trebuie sa aiba text si cel putin 2 variante
         if (qText && options.length >= 2) {
             questionsData.push({ text: qText, image: imageBase64, options });
         }
     }
 
-    if(questionsData.length === 0) return alert("Adaugă întrebări valide (minim text + 2 variante)!");
+    if(questionsData.length === 0) return alert("Adauga intrebari valide (minim text + 2 variante)!");
 
-    // Determinam ruta (Create sau Update)
+    // Alegem ruta corecta: Create sau Update
     let url = currentEditingTestId ? `${API_URL}/update-test` : `${API_URL}/create-test`;
     
     const body = {
@@ -308,12 +323,13 @@ async function saveFullTest(isPublished) {
     });
     
     if(res.ok) { 
-        alert(isPublished ? "Test Publicat!" : "Test Salvat ca Ciornă!"); 
+        alert(isPublished ? "Test Publicat!" : "Test Salvat ca Ciorna!"); 
         window.location.reload(); 
     } else alert("Eroare server");
 }
 
-// ================= REVIEW (Comun Student & Profesor) =================
+// ================= 4. REVIEW (VIZUALIZARE LUCRARE) =================
+// Aceasta functie e folosita si de Profesor si de Student pentru a vedea detaliile.
 
 async function loadReview(testId, studentId, studentName) {
     // Ascundem ecranele principale
@@ -324,7 +340,7 @@ async function loadReview(testId, studentId, studentName) {
     document.getElementById('reviewStudentName').innerText = `Lucrare: ${studentName}`;
     
     const container = document.getElementById('reviewContainer');
-    container.innerHTML = '<p>Se încarcă lucrarea...</p>';
+    container.innerHTML = '<p>Se incarca lucrarea...</p>';
 
     try {
         const res = await fetch(`${API_URL}/review/${testId}/${studentId}`);
@@ -338,27 +354,28 @@ async function loadReview(testId, studentId, studentName) {
             let optionsHTML = '';
             const optionsList = q.options || [];
 
+            // Coloram variantele pentru feedback vizual
             optionsList.forEach(opt => {
                 let style = "padding: 10px; margin: 5px 0; border-radius: 8px; border: 1px solid #eee;";
                 let icon = "";
 
                 if (opt.is_correct) {
                     style = "padding: 10px; margin: 5px 0; border-radius: 8px; background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724;"; 
-                    icon = '<i class="fas fa-check"></i>';
+                    icon = '<i class="fas fa-check"></i>'; // Varianta Corecta (Verde)
                 }
                 
                 if (opt.student_chose) {
                     if (opt.is_correct) {
-                        style += " border: 3px solid #2ecc71; font-weight:bold;"; 
+                        style += " border: 3px solid #2ecc71; font-weight:bold;"; // Corect si Ales (Verde Gros)
                     } else {
                         style = "padding: 10px; margin: 5px 0; border-radius: 8px; background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24;"; 
-                        icon = '<i class="fas fa-times"></i>';
+                        icon = '<i class="fas fa-times"></i>'; // Gresit si Ales (Rosu)
                     }
                 } 
                 optionsHTML += `<div style="${style}">${icon} ${opt.text}</div>`;
             });
 
-            // Punctajul per întrebare
+            // Afisam punctajul calculat per intrebare (ex: 0.5 / 1p)
             const scoreBadge = `<span style="float:right; background:#6c5ce7; color:white; padding:5px 10px; border-radius:15px; font-size:0.9rem;">
                 ${q.score} / 1p
             </span>`;
@@ -366,17 +383,18 @@ async function loadReview(testId, studentId, studentName) {
             container.innerHTML += `
                 <div class="card">
                     ${scoreBadge}
-                    <h4 style="color:#666; margin-bottom:10px;">Întrebarea ${index+1}</h4>
+                    <h4 style="color:#666; margin-bottom:10px;">Intrebarea ${index+1}</h4>
                     ${imgHTML}
                     <p style="font-size:1.1rem; font-weight:500; margin-bottom:15px; clear:both;">${q.text}</p>
                     <div>${optionsHTML}</div>
                 </div>`;
         });
     } catch (err) {
-        container.innerHTML = `<p style="color:red">Eroare la încărcare: ${err.message}</p>`;
+        container.innerHTML = `<p style="color:red">Eroare la incarcare: ${err.message}</p>`;
     }
 }
 
+// Inchide fereastra de review si revine la dashboard-ul anterior
 function closeReview() {
     document.getElementById('reviewModal').style.display = 'none';
     const user = JSON.parse(localStorage.getItem('user'));
@@ -387,13 +405,14 @@ function closeReview() {
     }
 }
 
-// ================= STUDENT =================
+// ================= 5. MODUL STUDENT =================
 
 async function loadStudentData() {
     checkUser('student');
     const user = JSON.parse(localStorage.getItem('user'));
     document.getElementById('studentName').innerText = `Salut, ${user.name}!`;
 
+    // 1. Incarcam Testele NOI (Disponibile)
     const res = await fetch(`${API_URL}/available-tests/${user.id}`);
     const tests = await res.json();
     const list = document.getElementById('availableTestsList');
@@ -410,13 +429,13 @@ async function loadStudentData() {
             </div>`;
     });
     
-    // Lista Note + Review
+    // 2. Incarcam Istoricul Notelor
     const resG = await fetch(`${API_URL}/grades/${user.id}`);
     const grades = await resG.json();
     const gList = document.getElementById('gradesList');
     if(gList) {
         gList.innerHTML = '';
-        if (grades.length === 0) gList.innerHTML = '<p style="color:gray">Nu ai completat niciun test încă.</p>';
+        if (grades.length === 0) gList.innerHTML = '<p style="color:gray">Nu ai completat niciun test inca.</p>';
         
         grades.forEach(g => {
             gList.innerHTML += `
@@ -428,15 +447,16 @@ async function loadStudentData() {
                 </div>
                 <button class="btn" style="width:auto; padding:5px 15px; font-size:12px; background:#6c5ce7;" 
                     onclick="loadReview(${g.test_id}, ${user.id}, '${user.name}')">
-                    Vezi Lucrarea
+                    Vezi Lucrare
                 </button>
             </div>`;
         });
     }
 }
 
-let currentTestId = null;
+let currentTestId = null; // ID-ul testului pe care il rezolva studentul
 
+// Porneste testul (ascunde dashboard-ul, arata intrebarile)
 async function startQuiz(testId, testName) {
     currentTestId = testId;
     document.getElementById('dashboardView').style.display = 'none';
@@ -465,9 +485,12 @@ async function startQuiz(testId, testName) {
     });
 }
 
+// Trimite testul completat la server
 async function submitQuiz() {
     const user = JSON.parse(localStorage.getItem('user'));
     const answersMap = {}; 
+    
+    // Colectam toate checkbox-urile bifate
     document.querySelectorAll('#quizView input[type="checkbox"]:checked').forEach(inp => {
         const qId = inp.name.split('_')[1];
         if(!answersMap[qId]) answersMap[qId] = [];
@@ -481,9 +504,13 @@ async function submitQuiz() {
         body: JSON.stringify({ studentId: user.id, testId: currentTestId, answers })
     });
     const result = await res.json();
-    if(result.success) { alert(`Test finalizat! Nota: ${result.grade}`); window.location.reload(); }
+    if(result.success) { 
+        alert(`Test finalizat! Nota: ${result.grade}`); 
+        window.location.reload(); 
+    }
 }
 
+// Anuleaza testul si revine la Dashboard
 function cancelQuiz() {
     document.getElementById('dashboardView').style.display = 'block';
     document.getElementById('quizView').style.display = 'none';
