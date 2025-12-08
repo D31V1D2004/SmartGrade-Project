@@ -55,3 +55,6 @@ graph TD
     class C server;
     class D db;
 ```
+Frontend (Client): Este interfața vizuală creată cu HTML și CSS. Logica (script.js) preia datele introduse de utilizator și le trimite către server prin cereri asincrone (AJAX/Fetch).
+Backend (Server): Construit pe Node.js cu Express. Acesta primește cererile, aplică logica de business (ex: calculează nota, verifică parola) și comunică cu baza de date.
+Baza de Date: Folosim SQLite, o bază de date relațională stocată într-un singur fișier, pentru a salva permanent utilizatorii, testele și notele.
