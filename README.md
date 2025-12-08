@@ -60,3 +60,51 @@ Frontend (Client): Este interfața vizuală creată cu HTML și CSS. Logica (scr
 Backend (Server): Construit pe Node.js cu Express. Acesta primește cererile, aplică logica de business (ex: calculează nota, verifică parola) și comunică cu baza de date.
 
 Baza de Date: Folosim SQLite, o bază de date relațională stocată într-un singur fișier, pentru a salva permanent utilizatorii, testele și notele.
+
+## 6. Ghid de Utilizare
+## Pentru PROFESOR
+Pasul 1: Autentificare
+Selectează "Creează cont Profesor" din pagina de start dacă nu ai cont, sau loghează-te cu datele existente.
+
+Pasul 2: Dashboard (Panoul de Control)
+Aici vezi lista tuturor testelor tale.
+Fiecare test are un status vizibil: CIORNĂ (galben - vizibil doar ție) sau PUBLICAT (verde - vizibil studenților).
+
+Pasul 3: Crearea și Editarea unui Test
+Apasă butonul "Creează Test Nou".
+Introdu titlul testului.
+Apasă "+ Adaugă Întrebare".
+Scrie textul întrebării.
+(Opțional) Încarcă o imagine relevantă.
+Apasă "+ Variantă" pentru a adăuga oricâte opțiuni de răspuns dorești.
+Bifează căsuța din dreptul variantelor corecte (suportă răspunsuri multiple).
+La final, ai două opțiuni:
+Salvează Ciornă: Testul se salvează, poți reveni să-l editezi, dar studenții nu îl văd.
+Publică: Testul devine activ imediat pentru studenți.
+
+Pasul 4: Monitorizare și Note
+În Dashboard, apasă butonul "Note" din dreptul unui test.
+Vei vedea lista studenților care au susținut testul și nota obținută.
+Apasă "Vezi Lucrare" pentru a inspecta detaliat răspunsurile studentului (ce a greșit și ce a nimerit).
+
+## Pentru STUDENT
+Pasul 1: Accesare Teste
+După logare, în Dashboard vei vedea lista "Teste Noi".
+Fiecare test afișează numele materiei și profesorul care l-a creat.
+
+Pasul 2: Susținerea Examenului
+Apasă "Start".
+Răspunde la întrebări bifând variantele corecte.
+Apasă "Trimite Testul".
+
+Pasul 3: Rezultat Imediat
+Aplicația calculează nota pe loc, folosind un algoritm de notare parțială (primești puncte pentru variantele corecte, dar ești penalizat pentru cele greșite).
+Testul se mută în zona "Istoric Note".
+
+Pasul 4: Review (Feedback)
+În istoric, apasă "Vezi Lucrarea".
+Vei vedea testul colorat:
+<span style="color:green">Verde</span> = Răspuns corect.
+<span style="color:red">Roșu</span> = Răspuns greșit selectat de tine.
+
+În colțul fiecărei întrebări vezi punctajul exact obținut (ex: 0.5 / 1p).
