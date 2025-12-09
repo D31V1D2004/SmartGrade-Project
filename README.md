@@ -16,7 +16,7 @@ SmartGrade este o aplicație web modernă, optimizată pentru dispozitive mobile
 4.  Porniți serverul: `node server.js`
 5.  Accesați aplicația în browser la: `http://localhost:3000` (sau IP-ul local pentru mobil).
 
-## 4. Funcționalități Implementate (Stadiu: >90%)
+## 4. Funcționalități Implementate 
 ### Modul Profesor:
 * Autentificare securizată.
 * Creare teste complexe (titlu, întrebări nelimitate, încărcare imagini, variante multiple de răspuns).
