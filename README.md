@@ -4,7 +4,7 @@
 SmartGrade este o aplicație web modernă, optimizată pentru dispozitive mobile, destinată digitalizării procesului de examinare în mediul academic. Scopul principal este de a elimina corectarea manuală a testelor și de a oferi feedback instantaneu studenților, permițând profesorilor să creeze teste dinamice cu imagini și răspunsuri multiple.
 
 ## 2. Tehnologii Utilizate
-* **Frontend:** HTML5, CSS3 (Responsive Flexbox/Grid), Vanilla JavaScript (ES6+).
+* **Frontend:** HTML5, CSS3 (Responsive Flexbox/Grid), JavaScript.
 * **Backend:** Node.js cu framework-ul Express.js.
 * **Bază de Date:** SQLite (pentru persistența datelor: utilizatori, teste, întrebări, note).
 * **Arhitectură:** REST API (Client-Server).
