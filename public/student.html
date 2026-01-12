@@ -3,55 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student</title>
+    <title>Student - SmartGrade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body onload="loadStudentData()">
-    <div class="header" style="padding: 20px;">
-        <h2 id="studentName">Salut!</h2>
+<body>
+    <div id="timer-container">
+        <i class="fas fa-clock"></i> <span id="time-display">00:00</span>
     </div>
 
-    <div class="container" style="margin-top: -30px;">
-        
-        <div id="dashboardView">
-            <div class="card">
-                <h3>Teste Disponibile</h3>
-                <div id="availableTestsList">
-                    <p style="color:grey">Se caută teste...</p>
-                </div>
-            </div>
+    <div class="header">
+        <i class="fas fa-user-graduate fa-3x"></i>
+        <h1>Panou Student</h1>
+        <button onclick="logout()" class="btn-secondary" style="margin-left:auto">Ieșire</button>
+    </div>
 
-            <h3>Istoric Note</h3>
+    <div class="container" id="dashboard-view">
+        
+        <div class="card">
+            <h2><i class="fas fa-plus-circle"></i> Înscrie-te la o Materie</h2>
+            <div style="display:flex; gap:10px;">
+                <input type="text" id="classCodeInput" placeholder="Introdu Codul (ex: XJ922)" class="join-input">
+                <button onclick="joinClass()" class="btn">Înscrie-te</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2><i class="fas fa-book"></i> Materiile Mele</h2>
+            <div id="myClassesList">
+                <p>Nu ești înscris la nicio materie.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2><i class="fas fa-pen"></i> Teste Disponibile</h2>
+            <div id="availableTestsList"></div>
+        </div>
+
+        <div class="card">
+            <h2><i class="fas fa-history"></i> Istoric Note</h2>
             <div id="gradesList"></div>
         </div>
-
-        <div id="quizView" style="display: none;">
-            <div class="card">
-                <h3 id="quizTitle">Titlu Test</h3>
-                <div id="quizQuestions"></div>
-                <button class="btn" onclick="submitQuiz()">Termină Testul</button>
-                <button class="btn" style="background: #e74c3c; margin-top:10px" onclick="cancelQuiz()">Anulează</button>
-            </div>
-        </div>
-
-        <div id="reviewModal" style="display: none;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <button class="btn" style="width:auto; background:grey; margin:0;" onclick="closeReview()">
-                    <i class="fas fa-arrow-left"></i> Înapoi
-                </button>
-            </div>
-            <h3 id="reviewStudentName" style="margin-bottom:15px;">Rezultat Detaliat</h3>
-            <div id="reviewContainer">
-        </div>
-</div>
-
     </div>
 
-    <nav class="navbar">
-        <a href="#" onclick="cancelQuiz()" class="nav-item active"><i class="fas fa-home"></i><br>Home</a>
-        <a href="#" onclick="logout()" class="nav-item"><i class="fas fa-sign-out-alt"></i><br>Ieșire</a>
-    </nav>
+    <div class="container" id="take-test-view" style="display:none;">
+        <button onclick="location.reload()" class="btn-secondary">Anulează / Înanpoi</button>
+        <h2 id="testTitleDisplay">Rezolvare Test</h2>
+        <div id="quizContainer"></div>
+        <button class="btn" onclick="submitQuiz()" style="margin-top:20px; width:100%;">Trimite Testul</button>
+    </div>
+
+    <div id="reviewModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('reviewModal')">&times;</span>
+            <h2>Detaliile Lucrării</h2>
+            <div id="reviewContent"></div>
+        </div>
+    </div>
+
+    <div id="take-test-view" style="display: none; padding: 20px; max-width: 800px; margin: auto;">
+        <h2 id="testTitleDisplay">Titlu Test</h2>
+    
+        <div id="timer-container" style="position: sticky; top: 0; background: white; padding: 10px; border-bottom: 2px solid #0984e3; margin-bottom: 20px; font-size: 1.2em; font-weight: bold; display: flex; justify-content: space-between;">
+            <span>Timp rămas:</span>
+            <span id="time-display" style="color: #d63031;">00:00</span>
+        </div>
+
+        <div id="quizContainer">
+            </div>
+
+        <hr>
+        <button class="btn" onclick="submitQuiz()" style="background-color: #00cec9; color: white; padding: 10px 20px; font-size: 1.1em; width: 100%;">Trimite Testul</button>
+    </div>
+
     <script src="script.js"></script>
+    <script>
+        const user = JSON.parse(localStorage.getItem('user'));
+        if(!user || user.role !== 'student') window.location.href = 'index.html';
+        
+        loadStudentClasses();
+        loadAvailableTests();
+        loadGrades();
+    </script>
 </body>
 </html>

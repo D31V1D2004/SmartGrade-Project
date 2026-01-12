@@ -3,47 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartGrade</title>
+    <title>SmartGrade - Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        /* Stiluri specifice doar pentru pagina de Login */
+        body {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .auth-container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            width: 350px;
+            text-align: center;
+        }
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: #6c5ce7;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .hidden { display: none; }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        .logo-icon {
+            color: #6c5ce7;
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
-<body>
-    <div class="header">
-        <i class="fas fa-graduation-cap fa-3x"></i>
-        <h1>SmartGrade</h1>
-    </div>
+<body class="login-mode">
 
-    <div class="container">
+    <div id="view-login" class="view-section active-view">
         
-        <div id="loginSection" class="card">
-            <h2>Autentificare</h2>
-            <input type="email" id="email" placeholder="Email">
-            <input type="password" id="password" placeholder="Parolă">
-            <button class="btn" onclick="handleLogin()">Intră în cont</button>
-            <p style="text-align: center; margin-top: 15px;">
-                Nu ai cont? <a href="#" onclick="toggleAuth()">Înregistrează-te</a>
-            </p>
-        </div>
-
-        <div id="signupSection" class="card" style="display: none;">
-            <h2>Înregistrare</h2>
-            <input type="text" id="newName" placeholder="Nume Complet">
-            <input type="email" id="newEmail" placeholder="Email">
-            <input type="password" id="newPassword" placeholder="Parolă">
+        <div class="login-wrapper">
             
-            <label>Rol:</label>
-            <select id="newRole" style="width: 100%; padding: 15px; margin-bottom: 15px; border-radius: 12px; border: 1px solid #ddd;">
-                <option value="student">Student</option>
-                <option value="teacher">Profesor</option>
-            </select>
+            <div class="login-header">
+                <i class="fas fa-graduation-cap fa-4x logo-icon"></i>
+                <h1 class="app-title">SmartGrade</h1>
+            </div>
 
-            <button class="btn" style="background: var(--secondary);" onclick="handleSignup()">Creează Cont</button>
-            <p style="text-align: center; margin-top: 15px;">
-                Ai deja cont? <a href="#" onclick="toggleAuth()">Loghează-te</a>
-            </p>
+            <center><div class="auth-container">
+
+                
+                <div id="login-form">
+                    <h2 style="margin-bottom: 20px;">Autentificare</h2>
+                    <input type="email" id="loginEmail" placeholder="Email">
+                    <input type="password" id="loginPassword" placeholder="Parolă">
+                    <button class="btn" onclick="login()" style="width:100%">Intră în cont</button>
+                    <p style="margin-top:15px;">
+                        Nu ai cont? <button class="toggle-btn" onclick="showSignup()">Înregistrează-te</button>
+                    </p>
+                </div>
+
+                <div id="signup-form" class="hidden">
+                    <h2 style="margin-bottom: 20px;">Creează Cont</h2>
+                    <input type="text" id="signupName" placeholder="Nume Complet">
+                    <input type="email" id="signupEmail" placeholder="Email">
+                    <input type="password" id="signupPassword" placeholder="Parolă">
+                    <select id="signupRole">
+                        <option value="student">Student</option>
+                        <option value="teacher">Profesor</option>
+                    </select>
+                    <button class="btn" onclick="signup()" style="width:100%">Înregistrare</button>
+                    <p style="margin-top:15px;">
+                        Ai deja cont? <button class="toggle-btn" onclick="showLogin()">Loghează-te</button>
+                    </p>
+                </div>
+            </div></center>
         </div>
-
     </div>
+
     <script src="script.js"></script>
+    <script>
+        // Logica simpla de comutare vizuala
+        function showSignup() {
+            document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('signup-form').classList.remove('hidden');
+        }
+        function showLogin() {
+            document.getElementById('signup-form').classList.add('hidden');
+            document.getElementById('login-form').classList.remove('hidden');
+        }
+    </script>
 </body>
 </html>
